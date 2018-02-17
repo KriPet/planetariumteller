@@ -1,0 +1,29 @@
+body {
+	width: 80%;
+	margin: 0 auto;
+	background-color: #333;
+	color: #eee;
+}
+
+table, th, td {
+	border-collapse: collapse;
+	border: 1px solid #eee;
+}
+
+th, td {
+	padding: .1em;
+}
+
+tr.show td {
+	transition: border-color 1s, background-color 1s;
+}
+
+tr.show.updating td {
+    border-color: yellow;
+    background-color: yellow;
+}
+
+tr.show.error td {
+    border-color: red;
+    background-color: red;
+}

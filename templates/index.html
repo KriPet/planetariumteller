@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Planetariebesøk</title>
+    <script src="{{ url_for('static', filename='jquery.js') }}"></script>
+    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<h2>Visninger {{weekday}} {{date}}</h2>
+<table class="shows">
+    <tr>
+        <th>Tidspunkt</th>
+        <th>Shownavn</th>
+        <th>Besøkende</th>
+        <th>Vert</th>
+        <th>Delete</th>
+    </tr>
+    {% for show in shows %}
+    <tr class="show">
+        <input type="hidden" name="date" id="date" value="{{date}}">
+        <input type="hidden" name="rowid" id="rowid" value="{{show.id}}">
+        <td><input type="text" name="time" id="time" value="{{show.time}}"></td>
+        <td><input type="text" name="showname" id="showname" value="{{show.show}}"></td>
+        <td><input type="integer" name="visitors" id="visitors" value="{{show.visitors}}"></td>
+        <td><input type="text" name="vert" id="vert" value="{{show.vert}}"></td>
+        <td><button type="button" name="delete" id="delete">Delete</button></td>
+    </tr>
+    {% endfor %}
+</table>
+</body>
+</html>
