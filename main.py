@@ -1,21 +1,14 @@
-from flask import Flask, render_template, request, jsonify, make_response
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, render_template, request, jsonify, make_response, send_file
 import datetime
 from collections import defaultdict
+from models import db, Show
+import pandas as pd
+from io import BytesIO
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.sqlite3'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-
-
-class Show(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.Date, nullable=False)
-    time = db.Column(db.String(10), nullable=False, default="")
-    show = db.Column(db.String(100), nullable=False, default="")
-    visitors = db.Column(db.Integer, nullable=False, default=0)
-    vert = db.Column(db.String(50), nullable=False, default="")
+db.init_app(app)
 
 
 @app.route("/add_row", methods=['POST', ])
@@ -58,7 +51,6 @@ def add_row():
 
 @app.route("/delete_row", methods=["POST", ])
 def delete_row():
-    # TODO: implement javascript
     rowid = request.form.get("rowid")
     row = Show.query.filter_by(id=rowid).first()
     if row is None:
@@ -87,7 +79,30 @@ def list_show(date: datetime.date):
     while len(shows) < 10:
         shows.append(Show(id="", time="", show="", vert="", visitors=""))
     weekday = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"][date.weekday()]
-    return render_template('index.html', date=date.strftime("%Y-%m-%d"), shows=shows, weekday=weekday)
+    prev_day_url = "/" + (date - datetime.timedelta(1)).strftime("%Y/%m/%d")
+    next_day_url = "/" + (date - datetime.timedelta(1)).strftime("%Y/%m/%d")
+    return render_template('index.html', date=date.strftime("%Y-%m-%d"),
+                           shows=shows, weekday=weekday,
+                           prev_day=prev_day_url,
+                           next_day=next_day_url,
+                           )
+
+
+@app.route('/stats.xlsx')
+def stats_xlsx():
+    q = db.session.query(Show).order_by(Show.date, Show.time).all()
+    cols = ["date", "time", "show", "visitors", "vert"]
+    df = pd.DataFrame([[getattr(row, c) for c in cols] for row in q], columns=cols)
+    bio = BytesIO()
+
+    writer = pd.ExcelWriter(bio)
+    df.to_excel(writer, "stats", index=False)
+    sheet = writer.sheets['stats']
+    sheet.auto_filter.ref = 'A:E'
+    writer.save()
+    bio.seek(0)
+    return send_file(bio, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
 
 
 @app.route('/stats/day')
@@ -104,6 +119,10 @@ def stats_month():
         month_stats[(date.year, date.month)] += visitors
     sorted_stats = [(key, month_stats[key]) for key in sorted(month_stats.keys())]
     return "<br>".join(f"{year}-{month}: {visitors}" for (year, month), visitors in sorted_stats)
+
+
+
+
 
 
 if __name__ == "__main__":
