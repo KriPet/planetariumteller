@@ -103,10 +103,15 @@ def list_show(date: datetime.date):
     weekday = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"][date.weekday()]
     prev_day_url = "/" + (date - datetime.timedelta(1)).strftime("%Y/%m/%d")
     next_day_url = "/" + (date + datetime.timedelta(1)).strftime("%Y/%m/%d")
+    show_set = {show.show for show in Show.query.distinct(Show.show)}
+    host_set = {show.vert for show in Show.query.distinct(Show.vert)}
+    datalists = {'shows': show_set,
+                 'hosts': host_set}
     return render_template('index.html', date=date.strftime("%Y-%m-%d"),
                            shows=shows, weekday=weekday,
                            prev_day=prev_day_url,
                            next_day=next_day_url,
+                           datalists=datalists,
                            )
 
 

@@ -23,13 +23,21 @@
         <input type="hidden" name="date" id="date" value="{{date}}">
         <input type="hidden" name="rowid" id="rowid" value="{{show.id}}">
         <td><input type="text" name="time" id="time" value="{{show.time}}"></td>
-        <td><input type="text" name="showname" id="showname" value="{{show.show}}"></td>
+        <td><input type="text" name="showname" id="showname" value="{{show.show}}" list="shows"></td>
         <td><input type="integer" name="visitors" id="visitors" value="{{show.visitors}}"></td>
-        <td><input type="text" name="vert" id="vert" value="{{show.vert}}"></td>
+        <td><input type="text" name="vert" id="vert" value="{{show.vert}}" list="hosts"></td>
         <td><button type="button" name="delete" id="delete">Delete</button></td>
     </tr>
     {% endfor %}
 </table>
+
+{% for datalist_name, datalist_items in datalists.items() %}
+<datalist id="{{ datalist_name }}">
+  {% for item in datalist_items %}
+  <option value="{{ item }}">
+  {% endfor %}
+</datalist>
+{% endfor %}
 
 <p>PS: Hvis du har noen ideer til hvordan jeg kan forbedre dette systemet, legg igjen en beskjed til Peter.</p>
 
