@@ -30,3 +30,12 @@ tr.show.error td {
     border-color: red;
     background-color: red;
 }
+
+
+tr.show.updating::after{
+    content: 'oppdaterer';
+}
+
+tr.show.error::after{
+    content: 'feil';
+}

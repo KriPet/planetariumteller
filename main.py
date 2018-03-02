@@ -92,7 +92,7 @@ def view_list_show(year, month, day):
 
 def list_show(date: datetime.date):
     shows = list(Show.query.filter_by(date=date).order_by(Show.time))
-    tmp_ids = set()
+    tmp_ids = set(show.id for show in shows)
     while len(shows) < 10:
         while True:
             tmp_id= (date - datetime.date(1991, 8, 9)).days*1000 + random.randint(0,999)
