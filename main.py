@@ -4,6 +4,7 @@ from collections import defaultdict
 from models import db, Show
 import pandas as pd
 from io import BytesIO
+import random
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.sqlite3'
@@ -32,12 +33,27 @@ def add_row():
     if show is None:
         print("Creating new show")
         show = Show()
+        try:
+            show.id = int(rowid)
+        except ValueError:
+            pass
         db.session.add(show)
+    if visitors == "":
+        visitors = "0"
+    try:
+        visitors = int(visitors.strip())
+    except ValueError:
+        return make_response(jsonify({'error': 'Visitors must be a number'}))
+    time = time.strip()
+    if time.isnumeric() and len(time) == 4:
+        time = time[:2] + ":" + time[2:]
+    elif time.find(':') == 1:
+        time = '0' + time
     show.date = date
-    show.time = time
-    show.show = show_name
+    show.time = time.strip()
+    show.show = show_name.strip()
     show.visitors = visitors
-    show.vert = vert
+    show.vert = vert.strip()
     db.session.commit()
 
     ret = jsonify({"rowid": show.id,
@@ -76,11 +92,17 @@ def view_list_show(year, month, day):
 
 def list_show(date: datetime.date):
     shows = list(Show.query.filter_by(date=date).order_by(Show.time))
+    tmp_ids = set()
     while len(shows) < 10:
-        shows.append(Show(id="", time="", show="", vert="", visitors=""))
+        while True:
+            tmp_id= (date - datetime.date(1991, 8, 9)).days*1000 + random.randint(0,999)
+            if tmp_id not in tmp_ids:
+                break;
+        tmp_ids.add(tmp_id)
+        shows.append(Show(id=str(tmp_id), time="", show="", vert="", visitors=""))
     weekday = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"][date.weekday()]
     prev_day_url = "/" + (date - datetime.timedelta(1)).strftime("%Y/%m/%d")
-    next_day_url = "/" + (date - datetime.timedelta(1)).strftime("%Y/%m/%d")
+    next_day_url = "/" + (date + datetime.timedelta(1)).strftime("%Y/%m/%d")
     return render_template('index.html', date=date.strftime("%Y-%m-%d"),
                            shows=shows, weekday=weekday,
                            prev_day=prev_day_url,
@@ -127,5 +149,5 @@ def stats_month():
 
 if __name__ == "__main__":
     # db.create_all()
-    app.debug = True
-    app.run()
+    # app.debug = True
+    app.run(host="0.0.0.0")

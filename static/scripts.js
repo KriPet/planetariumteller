@@ -31,8 +31,8 @@ function change_row(event){
 		row.classList.add('error');
 	}
 	console.log("Clearing timeout", row_timeouts[row])
-	clearTimeout(row_timeouts[row]);
-	row_timeouts[row] = setTimeout(function(){
+	clearTimeout(row_timeouts[rowid.val()]);
+	row_timeouts[rowid.val()] = setTimeout(function(){
 	    console.log("Sending POST")
 	    $.post("/add_row", data, success, 'json').fail(fail);
 	}, 1000);
