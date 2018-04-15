@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Planetariebesøk Statistikk</title>
+    <script src="{{ url_for('static', filename='jquery.js') }}"></script>
+    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<p>Totalt: {{totalt}}</p>
+<p>I år: {{this_year}}</p>
+<p>I {{month_name}}: {{this_month}}</p>
+</body>
+</html>

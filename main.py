@@ -28,7 +28,7 @@ def add_row():
     try:
         date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
     except ValueError:
-        return '', 500
+        return "Can't parse date", 500
     show = Show.query.filter_by(id=rowid).first()
     if show is None:
         print("Creating new show")
@@ -80,6 +80,16 @@ def delete_row():
 def index():
     return list_show(datetime.date.today())
 
+@app.route("/stats")
+def stats():
+    month_name = "denne måneden"
+    total = 0
+    this_month = 0
+    this_year = 0
+    return render_template('stats.html', month_name=month_name,
+                           total=total, this_month=this_month,
+                           this_year=this_year)
+
 
 @app.route("/<int:year>/<int:month>/<int:day>")
 def view_list_show(year, month, day):
@@ -103,8 +113,8 @@ def list_show(date: datetime.date):
     weekday = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"][date.weekday()]
     prev_day_url = "/" + (date - datetime.timedelta(1)).strftime("%Y/%m/%d")
     next_day_url = "/" + (date + datetime.timedelta(1)).strftime("%Y/%m/%d")
-    show_set = {show.show for show in Show.query.distinct(Show.show)}
-    host_set = {show.vert for show in Show.query.distinct(Show.vert)}
+    show_set = sorted(show.show for show in Show.query.distinct(Show.show))
+    host_set = sorted(show.vert for show in Show.query.distinct(Show.vert))
     datalists = {'shows': show_set,
                  'hosts': host_set}
     return render_template('index.html', date=date.strftime("%Y-%m-%d"),
