@@ -5,6 +5,7 @@ from models import db, Show
 import pandas as pd
 from io import BytesIO
 import random
+import re
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.sqlite3'
@@ -12,23 +13,38 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
 
+def parse_time(date_string: str):
+    pattern = re.compile(r'(\d{1,2})[.:]?(\d\d)')
+
+    def substitution(match_object):
+        hours,  minutes = match_object.groups()
+        return f"{hours:0>2s}:{minutes}"
+
+    new_date, subs = pattern.subn(substitution, date_string)
+    if subs == 0:
+        return None
+    return new_date
+
+
 @app.route("/add_row", methods=['POST', ])
 def add_row():
     rowid = request.form.get('rowid')
     date = request.form.get('date')
-    time = request.form.get('time')
+    time = parse_time(request.form.get('time'))
     show_name = request.form.get('show_name')
     visitors = request.form.get('visitors')
     vert = request.form.get('vert')
-    if any(field is None for field in [rowid, date, time, show_name, visitors, vert]) is None:
+    if time is None:
+        return make_response(jsonify({'error': 'Invalid time'}), 500)
+    if all(field is None for field in [rowid, date, time, show_name, visitors, vert]):
         return make_response(jsonify({'error': 'All fields are empty'}), 500)
-    if all(field in [0, ''] for field in [visitors, time, show_name]):
+    if all(field in [0, '', None] for field in [visitors, time, show_name]):
         return make_response(jsonify({'error': 'Not enough fields'}), 500)
     print(rowid, date, time, show_name, visitors, vert)
     try:
         date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
     except ValueError:
-        return "Can't parse date", 500
+        make_response(jsonify({'error': 'Not a valid date'}), 500)
     show = Show.query.filter_by(id=rowid).first()
     if show is None:
         print("Creating new show")
@@ -105,9 +121,9 @@ def list_show(date: datetime.date):
     tmp_ids = set(show.id for show in shows)
     while len(shows) < 10:
         while True:
-            tmp_id= (date - datetime.date(1991, 8, 9)).days*1000 + random.randint(0,999)
+            tmp_id = (date - datetime.date(1991, 8, 9)).days*1000 + random.randint(0, 999)
             if tmp_id not in tmp_ids:
-                break;
+                break
         tmp_ids.add(tmp_id)
         shows.append(Show(id=str(tmp_id), time="", show="", vert="", visitors=""))
     weekday = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"][date.weekday()]
@@ -141,7 +157,6 @@ def stats_xlsx():
     return send_file(bio, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
-
 @app.route('/stats/day')
 def stats_day():
     q = db.session.query(Show.date, db.func.sum(Show.visitors), db.func.avg(Show.visitors)).group_by(Show.date).all()
@@ -156,10 +171,6 @@ def stats_month():
         month_stats[(date.year, date.month)] += visitors
     sorted_stats = [(key, month_stats[key]) for key in sorted(month_stats.keys())]
     return "<br>".join(f"{year}-{month}: {visitors}" for (year, month), visitors in sorted_stats)
-
-
-
-
 
 
 if __name__ == "__main__":
