@@ -6,6 +6,9 @@ import pandas as pd
 from io import BytesIO
 import random
 import re
+from typing import List
+from sqlalchemy import func
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.sqlite3'
@@ -17,7 +20,7 @@ def parse_time(date_string: str):
     pattern = re.compile(r'(\d{1,2})[.:]?(\d\d)')
 
     def substitution(match_object):
-        hours,  minutes = match_object.groups()
+        hours, minutes = match_object.groups()
         return f"{hours:0>2s}:{minutes}"
 
     new_date, subs = pattern.subn(substitution, date_string)
@@ -96,6 +99,7 @@ def delete_row():
 def index():
     return list_show(datetime.date.today())
 
+
 @app.route("/stats")
 def stats():
     month_name = "denne måneden"
@@ -116,28 +120,48 @@ def view_list_show(year, month, day):
     return list_show(date)
 
 
+def host_datalist() -> List[str]:
+    """Returns a list of planetarium hosts in the order they will be suggested on the webpage"""
+
+    current_time = datetime.datetime.utcnow()
+    one_month_ago = current_time - datetime.timedelta(days=30)
+
+    return list(r[0] for r in
+        db.session.query(Show.vert)
+        .group_by(Show.vert)
+        .filter(Show.date > one_month_ago)
+        .order_by(func.count(Show.vert).desc())
+        .all()
+    )
+
+
+def show_datalist() -> List[str]:
+    """Returns a list of show names in the order they will be suggested on the webpage"""
+    return list(r[0] for r in db.session.query(Show.show).distinct().order_by(Show.show))
+
+
 def list_show(date: datetime.date):
     shows = list(Show.query.filter_by(date=date).order_by(Show.time))
     tmp_ids = set(show.id for show in shows)
     while len(shows) < 10:
         while True:
-            tmp_id = (date - datetime.date(1991, 8, 9)).days*1000 + random.randint(0, 999)
+            tmp_id = (date - datetime.date(1991, 8, 9)).days * 1000 + random.randint(0, 999)
             if tmp_id not in tmp_ids:
                 break
         tmp_ids.add(tmp_id)
         shows.append(Show(id=str(tmp_id), time="", show="", vert="", visitors=""))
-    weekday = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"][date.weekday()]
+    weekday = ("Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag")[date.weekday()]
     prev_day_url = "/" + (date - datetime.timedelta(1)).strftime("%Y/%m/%d")
     next_day_url = "/" + (date + datetime.timedelta(1)).strftime("%Y/%m/%d")
-    show_set = sorted(show.show for show in Show.query.distinct(Show.show))
-    host_set = sorted(show.vert for show in Show.query.distinct(Show.vert))
-    datalists = {'shows': show_set,
-                 'hosts': host_set}
+    show_set = show_datalist()
+    host_set = host_datalist()
+    data_lists = {'shows': show_set,
+                  'hosts': host_set}
     return render_template('index.html', date=date.strftime("%Y-%m-%d"),
                            shows=shows, weekday=weekday,
                            prev_day=prev_day_url,
                            next_day=next_day_url,
-                           datalists=datalists,
+                           datalists=data_lists,
                            )
 
 
@@ -175,5 +199,5 @@ def stats_month():
 
 if __name__ == "__main__":
     # db.create_all()
-    # app.debug = True
+    app.debug = True
     app.run(host="0.0.0.0")
